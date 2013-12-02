@@ -45,6 +45,7 @@ Client::Client(int tunnelMtu, const char *deviceName, uint32_t serverIp,
     this->changeEchoId = changeEchoId;
     this->changeEchoSeq = changeEchoSeq;
     this->nextEchoSequence = Utility::rand();
+    this->clientId = 0;
 
     state = STATE_CLOSED;
 }
@@ -96,6 +97,9 @@ bool Client::handleEchoData(const TunnelHeader &header, int dataLength, uint32_t
 
     if (header.magic != Server::magic)
         return false;
+
+    if (header.clientId != 0 && this->clientId == 0)
+        this->clientId = header.clientId;
 
     switch (header.type)
     {
@@ -172,7 +176,7 @@ void Client::sendEchoToServer(int type, int dataLength)
     if (maxPolls == 0 && state == STATE_ESTABLISHED)
         setTimeout(KEEP_ALIVE_INTERVAL);
 
-    sendEcho(magic, type, dataLength, serverIp, false, nextEchoId, nextEchoSequence);
+    sendEcho(magic, type, dataLength, serverIp, false, nextEchoId, nextEchoSequence, clientId);
 
     if (changeEchoId)
         nextEchoId = nextEchoId + 38543; // some random prime

@@ -23,6 +23,7 @@
 #include "utility.h"
 
 #include <string.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <syslog.h>
 
@@ -69,6 +70,7 @@ void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, uin
     client.maxPolls = connectData->maxPolls;
     client.state = ClientData::STATE_NEW;
     client.tunnelIp = reserveTunnelIp(connectData->desiredIp);
+    client.clientId = random();
 
     syslog(LOG_DEBUG, "new client: %s (%s)\n", Utility::formatIp(client.realIp).c_str(), Utility::formatIp(client.tunnelIp).c_str());
 
@@ -81,6 +83,7 @@ void Server::handleUnknownClient(const TunnelHeader &header, int dataLength, uin
         clientList.push_back(client);
         clientRealIpMap[realIp] = clientList.size() - 1;
         clientTunnelIpMap[client.tunnelIp] = clientList.size() - 1;
+        clientIdMap[client.clientId] = clientList.size() - 1;
     }
     else
     {
@@ -109,6 +112,7 @@ void Server::removeClient(ClientData *client)
 
     clientRealIpMap.erase(client->realIp);
     clientTunnelIpMap.erase(client->tunnelIp);
+    clientIdMap.erase(client->clientId);
 
     clientList.erase(clientList.begin() + nr);
 }
@@ -151,7 +155,7 @@ bool Server::handleEchoData(const TunnelHeader &header, int dataLength, uint32_t
     if (header.magic != Client::magic)
         return false;
 
-    ClientData *client = getClientByRealIp(realIp);
+    ClientData *client = getClientByClientId(header.clientId);
     if (client == NULL)
     {
         handleUnknownClient(header, dataLength, realIp, id, seq);
@@ -223,6 +227,14 @@ Server::ClientData *Server::getClientByRealIp(uint32_t ip)
     return &clientList[clientMapIterator->second];
 }
 
+Server::ClientData *Server::getClientByClientId(uint32_t id)
+{
+    ClientIdMap::iterator clientMapIterator = clientIdMap.find(id);
+    if (clientMapIterator == clientIdMap.end())
+        return NULL;
+    
+    return &clientList[clientMapIterator->second];
+}
 void Server::handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp)
 {
     if (destIp == network + 255) // ignore broadcasts
@@ -265,7 +277,7 @@ void Server::sendEchoToClient(ClientData *client, int type, int dataLength)
 {
     if (client->maxPolls == 0)
     {
-        sendEcho(magic, type, dataLength, client->realIp, true, client->pollIds.front().id, client->pollIds.front().seq);
+        sendEcho(magic, type, dataLength, client->realIp, true, client->pollIds.front().id, client->pollIds.front().seq, client->clientId);
         return;
     }
 
@@ -275,7 +287,7 @@ void Server::sendEchoToClient(ClientData *client, int type, int dataLength)
         client->pollIds.pop();
 
         DEBUG_ONLY(printf("sending -> %d\n", client->pollIds.size()));
-        sendEcho(magic, type, dataLength, client->realIp, true, echoId.id, echoId.seq);
+        sendEcho(magic, type, dataLength, client->realIp, true, echoId.id, echoId.seq, client->clientId);
         return;
     }
 

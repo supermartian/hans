@@ -77,7 +77,7 @@ Worker::~Worker()
     delete tun;
 }
 
-void Worker::sendEcho(const TunnelHeader::Magic &magic, int type, int length, uint32_t realIp, bool reply, uint16_t id, uint16_t seq)
+void Worker::sendEcho(const TunnelHeader::Magic &magic, int type, int length, uint32_t realIp, bool reply, uint16_t id, uint16_t seq, uint32_t clientId)
 {
     if (length > payloadBufferSize())
         throw Exception("packet too big");
@@ -85,6 +85,7 @@ void Worker::sendEcho(const TunnelHeader::Magic &magic, int type, int length, ui
     TunnelHeader *header = (TunnelHeader *)echo->sendPayloadBuffer();
     header->magic = magic;
     header->type = type;
+    header->clientId = clientId;
 
     DEBUG_ONLY(printf("sending: type %d, length %d, id %d, seq %d\n", type, length, id, seq));
 
