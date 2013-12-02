@@ -62,6 +62,7 @@ protected:
     uint32_t serverIp;
     uint32_t clientIp;
     uint32_t desiredIp;
+    uint32_t clientId;
 
     int maxPolls;
     int pollTimeoutNr;

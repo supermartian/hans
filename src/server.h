@@ -71,6 +71,8 @@ protected:
         uint32_t realIp;
         uint32_t tunnelIp;
 
+        uint32_t clientId;
+
         std::queue<Packet> pendingPackets;
 
         int maxPolls;
@@ -84,6 +86,7 @@ protected:
 
     typedef std::vector<ClientData> ClientList;
     typedef std::map<uint32_t, int> ClientIpMap;
+    typedef std::map<uint32_t, int> ClientIdMap;
 
     virtual bool handleEchoData(const TunnelHeader &header, int dataLength, uint32_t realIp, bool reply, uint16_t id, uint16_t seq);
     virtual void handleTunData(int dataLength, uint32_t sourceIp, uint32_t destIp);
@@ -109,6 +112,7 @@ protected:
 
     ClientData *getClientByTunnelIp(uint32_t ip);
     ClientData *getClientByRealIp(uint32_t ip);
+    ClientData *getClientByClientId(uint32_t id);
 
     Auth auth;
 
@@ -121,6 +125,7 @@ protected:
     ClientList clientList;
     ClientIpMap clientRealIpMap;
     ClientIpMap clientTunnelIpMap;
+    ClientIdMap clientIdMap;
 };
 
 #endif
